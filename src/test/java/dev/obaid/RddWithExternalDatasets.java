@@ -59,22 +59,29 @@ public class RddWithExternalDatasets {
 
     @Test
     void loadingWholeDirectoryFilesInToSparkRdd() {
+        // Assuming you have an initialized SparkContext and the wholeTextFilesRdd is already defined
+
         try (final var sparkContext = new JavaSparkContext(sparkConf)) {
             final String directoryPath = Path.of("src/test/resources").toString();
             // create rdds
             JavaPairRDD<String, String> wholeTextFilesRdd = sparkContext.wholeTextFiles(directoryPath);
 
-            System.out.printf("The total number of files in the directory [ %s ] : %d%n", wholeTextFilesRdd, wholeTextFilesRdd.count());
+            System.out.printf("The total number of files in the directory [ %s ] : %d%n", directoryPath, wholeTextFilesRdd.count());
 
-            wholeTextFilesRdd.collect().forEach(tuple -> {
-                System.out.printf("File name : %s%n", tuple._1);
+            // Print the file names first
+            wholeTextFilesRdd.keys().foreach(fileName -> {
+                System.out.printf("File name: %s%n", fileName);
+            });
 
-                if (tuple._1.endsWith("properties")) {
-                    System.out.printf("Content of [%s]:%n", tuple._1);
-                    System.out.println(tuple._2);
-                }
+            // Filter the RDD to keep only the files ending with "properties" and print their content
+            JavaPairRDD<String, String> propertiesFilesRdd = wholeTextFilesRdd.filter(tuple -> tuple._1.endsWith("properties"));
+
+            propertiesFilesRdd.foreach(tuple -> {
+                System.out.printf("Content of [%s]:%n", tuple._1);
+                System.out.println(tuple._2);
             });
         }
+
     }
 
 }
