@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-public class RddWithExternalDatasets {
+public class RddWithExternalDatasetsTest {
     private final SparkConf sparkConf = new SparkConf().setAppName("RddWithExternalDatasets").setMaster("local[*]");
 
     private static Stream<Arguments> getFilePaths() {
@@ -58,9 +58,8 @@ public class RddWithExternalDatasets {
     }
 
     @Test
+    @DisplayName("loading whole directory files into Spark RDD")
     void loadingWholeDirectoryFilesInToSparkRdd() {
-        // Assuming you have an initialized SparkContext and the wholeTextFilesRdd is already defined
-
         try (final var sparkContext = new JavaSparkContext(sparkConf)) {
             final String directoryPath = Path.of("src/test/resources").toString();
             // create rdds
@@ -69,9 +68,7 @@ public class RddWithExternalDatasets {
             System.out.printf("The total number of files in the directory [ %s ] : %d%n", directoryPath, wholeTextFilesRdd.count());
 
             // Print the file names first
-            wholeTextFilesRdd.keys().foreach(fileName -> {
-                System.out.printf("File name: %s%n", fileName);
-            });
+            wholeTextFilesRdd.keys().foreach(fileName -> System.out.printf("File name: %s%n", fileName));
 
             // Filter the RDD to keep only the files ending with "properties" and print their content
             JavaPairRDD<String, String> propertiesFilesRdd = wholeTextFilesRdd.filter(tuple -> tuple._1.endsWith("properties"));
@@ -80,6 +77,34 @@ public class RddWithExternalDatasets {
                 System.out.printf("Content of [%s]:%n", tuple._1);
                 System.out.println(tuple._2);
             });
+        }
+
+    }
+
+
+    @Test
+    @DisplayName("loading CSV file into Spark RDD")
+    void loadingCsvFilesInToSparkRdd() {
+        try (final var sparkContext = new JavaSparkContext(sparkConf)) {
+            final String csvFilePath = Path.of("src/test/resources/dma.csv").toString();
+            // create rdds
+            JavaRDD<String> csvFileRdd = sparkContext.textFile(csvFilePath);
+
+            System.out.printf("The total number of files in the directory [ %s ] : %d%n", csvFilePath, csvFileRdd.count());
+
+            System.out.println("CSV file headers ->");
+            System.out.println(csvFileRdd.first());
+            System.out.println("|--------------------|");
+
+            System.out.println("CSV file headers ->");
+            csvFileRdd.take(10).forEach(System.out::println);
+            System.out.println("|--------------------|");
+
+            //extract each flied from csv
+            JavaRDD<String[]> csvFields = csvFileRdd.map(line -> line.split(","));
+
+            // take the first 5 lines and separted with the '|'
+            csvFields.take(5).forEach(field -> System.out.println(String.join(" | ", field)));
         }
 
     }
