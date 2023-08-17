@@ -1,5 +1,6 @@
 package dev.obaid;
 
+import com.google.common.collect.Iterables;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -63,5 +64,29 @@ public class WideTransformationsTest {
         }
     }
 
+    /**
+     * groupBy should be avoided as much as possible
+     *
+     * @param tesFilePath
+     */
+    @ParameterizedTest
+    @MethodSource("getFilePaths")
+    @DisplayName("Test groupBy() method in spark RDD")
+    void testMapToPairWithGroupBy(final String tesFilePath) {
+        try (final JavaSparkContext sparkContext = new JavaSparkContext(sparkConf)) {
+            final JavaRDD<String> stringJavaRDD = sparkContext.textFile(tesFilePath);
+            System.out.printf("Total lines of each file: %d%n", stringJavaRDD.count());
+
+            final JavaPairRDD<Integer, Long> integerLongJavaPairRDD = stringJavaRDD
+                    .mapToPair(wordInLine -> new Tuple2<>(wordInLine.length(), 1L));
+            assertThat(stringJavaRDD.count()).isEqualTo(integerLongJavaPairRDD.count());
+
+            final JavaPairRDD<Integer, Iterable<Long>> countsOfPairedRDD = integerLongJavaPairRDD.groupByKey();
+
+            countsOfPairedRDD.take(5).forEach(tuple ->
+                    System.out.printf("Total String of length %d are %d%n", tuple._1, Iterables.size(tuple._2)));
+            System.out.println("|---------------------------------|");
+        }
+    }
 
 }
