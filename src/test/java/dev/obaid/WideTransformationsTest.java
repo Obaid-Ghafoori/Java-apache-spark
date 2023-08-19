@@ -89,4 +89,24 @@ public class WideTransformationsTest {
         }
     }
 
+
+    @ParameterizedTest
+    @MethodSource("getFilePaths")
+    @DisplayName("Test distinct() method in spark RDD")
+    void testMapToPairWithDistinct(final String tesFilePath) {
+        try (final JavaSparkContext sparkContext = new JavaSparkContext(sparkConf)) {
+            final JavaRDD<String> textBasedRdd = sparkContext.textFile(tesFilePath);
+            System.out.printf("Total lines of each file: %d%n", textBasedRdd.count());
+
+            final JavaPairRDD<String, Integer> pairRdd = textBasedRdd.mapToPair(wordInLine -> new Tuple2<>(wordInLine, wordInLine.length()));
+            assertThat(textBasedRdd.count()).isEqualTo(pairRdd.count());
+
+
+            JavaPairRDD<String, Integer> uniqueWordPairs = pairRdd.distinct();
+
+            uniqueWordPairs.take(5).forEach(tuple -> System.out.println(tuple._1));
+            System.out.println("|---------------------------------|");
+        }
+    }
+
 }
